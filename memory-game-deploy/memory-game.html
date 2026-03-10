@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>משחק זיכרון משפחתי</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      min-height: 100vh;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 2.2rem;
+      margin-bottom: 6px;
+      text-shadow: 0 2px 10px rgba(255,200,100,0.5);
+      color: #ffd700;
+      letter-spacing: 2px;
+    }
+
+    .subtitle {
+      color: #aaa;
+      margin-bottom: 20px;
+      font-size: 0.95rem;
+    }
+
+    /* ---- Game Mode Selector ---- */
+    .mode-panel {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .mode-btn {
+      padding: 8px 20px;
+      border: 2px solid #ffd700;
+      background: transparent;
+      color: #ffd700;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: all 0.3s;
+      font-family: inherit;
+    }
+
+    .mode-btn:hover, .mode-btn.active {
+      background: #ffd700;
+      color: #1a1a2e;
+      font-weight: bold;
+    }
+
+    /* ---- Difficulty Selector ---- */
+    .difficulty-panel {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .diff-btn {
+      padding: 8px 20px;
+      border: 2px solid #ffd700;
+      background: transparent;
+      color: #ffd700;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      transition: all 0.3s;
+      font-family: inherit;
+    }
+
+    .diff-btn:hover, .diff-btn.active {
+      background: #ffd700;
+      color: #1a1a2e;
+      font-weight: bold;
+    }
+
+    /* ---- Score Board ---- */
+    .scoreboard {
+      display: flex;
+      gap: 30px;
+      margin-bottom: 18px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 12px 30px;
+      border: 1px solid rgba(255,215,0,0.2);
+    }
+
+    .score-item {
+      text-align: center;
+    }
+
+    .score-label {
+      font-size: 0.75rem;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .score-value {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #ffd700;
+    }
+
+    /* ---- Turn Indicator ---- */
+    .turn-indicator {
+      margin-bottom: 14px;
+      font-size: 1.1rem;
+      padding: 8px 24px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.1);
+      transition: background 0.4s;
+    }
+
+    .turn-indicator.computer-turn {
+      background: rgba(255,100,100,0.25);
+      color: #ff9999;
+    }
+
+    .turn-indicator.player-turn {
+      background: rgba(100,255,150,0.2);
+      color: #90ff90;
+    }
+
+    /* ---- Game Board ---- */
+    .game-board {
+      display: grid;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    /* ---- Card ---- */
+    .card {
+      width: 110px;
+      height: 130px;
+      perspective: 800px;
+      cursor: pointer;
+    }
+
+    .card-inner {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.5s cubic-bezier(0.4, 0.2, 0.2, 1);
+    }
+
+    .card.flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card.matched .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* Card Back */
+    .card-back {
+      background: linear-gradient(145deg, #1e3a5f, #0d2137);
+      border: 2px solid rgba(255,215,0,0.5);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.4), inset 0 0 20px rgba(255,215,0,0.05);
+    }
+
+    .card-back-design {
+      font-size: 2.8rem;
+      opacity: 0.7;
+      text-shadow: 0 0 15px rgba(255,215,0,0.6);
+    }
+
+    /* Card Front */
+    .card-front {
+      transform: rotateY(180deg);
+      background: #fff;
+      border: 3px solid #ffd700;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+    }
+
+    .card-front img {
+      width: 100%;
+      height: 100%;
+      border-radius: 0;
+      object-fit: cover;
+      object-position: center;
+      border: none;
+      box-shadow: none;
+    }
+
+    .card-name {
+      font-size: 0.65rem;
+      color: #333;
+      text-align: center;
+      position: absolute;
+      bottom: 6px;
+      width: 100%;
+      font-weight: 600;
+    }
+
+    /* Matched card glow */
+    .card.matched .card-front {
+      border-color: #00ff88;
+      box-shadow: 0 0 20px rgba(0,255,136,0.6);
+    }
+
+    .card.matched img {
+      border-color: #00ff88;
+    }
+
+    /* No-flip shake animation */
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+
+    .card.no-flip { animation: shake 0.3s ease; }
+
+    /* ---- Buttons ---- */
+    .btn-row {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .btn {
+      padding: 10px 28px;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-family: inherit;
+      transition: all 0.25s;
+      font-weight: 600;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #ffd700, #ff9f00);
+      color: #1a1a2e;
+    }
+
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255,215,0,0.4); }
+
+    /* ---- Win Screen ---- */
+    .win-screen {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.82);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 18px;
+      text-align: center;
+      padding: 30px;
+    }
+
+    .win-screen.show { display: flex; }
+
+    .win-icon { font-size: 5rem; }
+
+    .win-title {
+      font-size: 2.2rem;
+      color: #ffd700;
+      font-weight: bold;
+    }
+
+    .win-details {
+      color: #ccc;
+      font-size: 1.1rem;
+      line-height: 1.8;
+    }
+
+    /* ---- Computer thinking ---- */
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .thinking { animation: pulse 0.8s infinite; color: #ffaaaa; }
+
+    /* ---- Responsive ---- */
+    @media (max-width: 600px) {
+      .card { width: 80px; height: 95px; }
+      .card-front img { width: 65px; height: 65px; }
+      h1 { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+
+<h1>🏠 משחק זיכרון משפחתי</h1>
+<p class="subtitle">מצא את כל הזוגות!</p>
+
+<!-- Game Mode -->
+<div class="mode-panel">
+  <button class="mode-btn active" onclick="setMode(0)">לשחק לבד</button>
+  <button class="mode-btn" onclick="setMode(1)">לשחק מול מישהו אחר</button>
+  <button class="mode-btn" onclick="setMode(2)">לשחק מול המחשב</button>
+</div>
+
+<!-- Difficulty -->
+<div class="difficulty-panel">
+  <button class="diff-btn active" onclick="setDifficulty(0)">קל (4 זוגות)</button>
+  <button class="diff-btn" onclick="setDifficulty(1)">בינוני (8 זוגות)</button>
+  <button class="diff-btn" onclick="setDifficulty(2)">קשה (14 זוגות)</button>
+  <button class="diff-btn" onclick="setDifficulty(3)">מומחה (20 זוגות)</button>
+</div>
+
+<!-- Score -->
+<div class="scoreboard">
+  <div class="score-item">
+    <div class="score-label">זוגות שחקן 1</div>
+    <div class="score-value" id="player1-pairs">0</div>
+  </div>
+  <div class="score-item">
+    <div class="score-label">⏱ זמן</div>
+    <div class="score-value" id="timer">0:00</div>
+  </div>
+  <div class="score-item">
+    <div class="score-label">זוגות שחקן 2</div>
+    <div class="score-value" id="player2-pairs">0</div>
+  </div>
+</div>
+
+<!-- Turn Indicator -->
+<div class="turn-indicator" id="turn-indicator">תור שחקן 1</div>
+
+<!-- Game board -->
+<div class="game-board" id="game-board"></div>
+
+<!-- Buttons -->
+<div class="btn-row">
+  <button class="btn btn-primary" onclick="startGame()">🔄 משחק חדש</button>
+</div>
+
+<!-- Win screen -->
+<div class="win-screen" id="win-screen">
+  <div class="win-icon" id="win-icon">🎉</div>
+  <div class="win-title" id="win-title">כל הכבוד!</div>
+  <div class="win-details" id="win-details"></div>
+  <button class="btn btn-primary" onclick="closeWin()">משחק נוסף</button>
+</div>
+
+<script>
+// =============================================
+//  PHOTO CONFIGURATION
+//  כאן תוכל להוסיף/לערוך תמונות ושמות
+// =============================================
+const ALL_PHOTOS = [
+  { file: "20190422_122725.jpg" },
+  { file: "20240306_140334 (1).jpg" },
+  { file: "20250826_141823(0).jpg" },
+  { file: "20250827_144409.jpg" },
+  { file: "20250919_061626.jpg" },
+  { file: "WhatsApp Image 2026-03-03 at 07.09.50.jpeg" },
+  { file: "WhatsApp Image 2026-03-03 at 11.32.01.jpeg" },
+  { file: "WhatsApp Image 2026-03-08 at 08.24.36 (1).jpeg" },
+  { file: "WhatsApp Image 2026-03-08 at 08.24.36.jpeg" },
+  { file: "WhatsApp Image 2026-03-08 at 08.28.17 (1).jpeg" },
+  { file: "WhatsApp Image 2026-03-08 at 08.28.17.jpeg" },
+  { file: "WhatsApp Image 2026-03-08 at 08.29.34.jpeg" },
+  { file: "WhatsApp Image 2026-03-08 at 08.31.19 (3).jpeg" },
+  { file: "WhatsApp Image 2026-03-09 at 16.31.01.jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 09.55.33 (1).jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 09.55.33 (2).jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 09.55.33.jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 09.56.29.jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 09.56.53 (1).jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 09.56.53.jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 09.57.52.jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 09.58.23.jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 09.59.30.jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 09.59.41.jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 10.03.51 (1).jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 10.03.51.jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 10.05.05.jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 10.05.35.jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 10.05.52.jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 10.07.39.jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 10.08.04.jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 10.08.44.jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 10.14.14.jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 11.24.14.jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 11.59.06 (1).jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 11.59.06 (2).jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 11.59.06 (3).jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 11.59.06.jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 12.02.15 (1).jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 12.02.15.jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 12.19.33 (1).jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 12.19.33.jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 12.22.46.jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 12.23.12.jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 12.27.24 (1).jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 12.55.18.jpeg" },
+  { file: "WhatsApp Image 2026-03-10 at 12.55.19.jpeg" },
+];
+
+// Remove duplicate alias entry – keep only unique files
+const PHOTOS = [];
+const seen = new Set();
+ALL_PHOTOS.forEach(p => {
+  if (!seen.has(p.file)) { seen.add(p.file); PHOTOS.push(p); }
+});
+
+const DIFFICULTY_LEVELS = [
+  { label: "קל",    pairs: 4,  computerMemory: 0.2  },
+  { label: "בינוני",pairs: 8,  computerMemory: 0.5  },
+  { label: "קשה",   pairs: 14, computerMemory: 0.75 },
+  { label: "מומחה", pairs: 20, computerMemory: 1.0  },
+];
+
+const GAME_MODES = [
+  { label: "לשחק לבד", players: 1 },
+  { label: "לשחק מול מישהו אחר", players: 2 },
+  { label: "לשחק מול המחשב", players: 2, computer: true },
+];
+
+// =============================================
+//  GAME STATE
+// =============================================
+let currentDifficulty = 0;
+let currentMode = 0;
+let cards = [];          // DOM elements
+let cardData = [];       // { photoIndex, matched, id }
+let flippedCards = [];   // indices of currently face-up unmatched cards
+let isLocked = false;    // prevent clicks during animations
+
+let player1Pairs = 0, player2Pairs = 0;
+let currentPlayer = 1; // 1 or 2
+let computerMemory = {}; // for computer mode
+
+let timerInterval = null;
+let timerSeconds = 0;
+
+// =============================================
+//  INIT
+// =============================================
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach((b, i) => {
+    b.classList.toggle('active', i === mode);
+  });
+  startGame();
+}
+
+function setDifficulty(level) {
+  currentDifficulty = level;
+  document.querySelectorAll('.diff-btn').forEach((b, i) => {
+    b.classList.toggle('active', i === level);
+  });
+  startGame();
+}
+
+function startGame() {
+  clearInterval(timerInterval);
+  timerSeconds = 0;
+  updateTimer();
+
+  player1Pairs = 0; player2Pairs = 0;
+  currentPlayer = 1;
+  computerMemory = {};
+  flippedCards = [];
+  isLocked = false;
+
+  updateScores();
+  updateTurnIndicator();
+  document.getElementById('win-screen').classList.remove('show');
+
+  // Update scoreboard labels
+  const player2Label = GAME_MODES[currentMode].computer ? 'זוגות מחשב' : 'זוגות שחקן 2';
+  document.querySelectorAll('.score-label')[0].textContent = 'זוגות שחקן 1';
+  document.querySelectorAll('.score-label')[2].textContent = player2Label;
+
+  const level = DIFFICULTY_LEVELS[currentDifficulty];
+  const numPairs = Math.min(level.pairs, PHOTOS.length);
+
+  // Pick photos randomly for this game
+  const shuffledPhotos = shuffle([...PHOTOS]).slice(0, numPairs);
+
+  // Create pairs
+  cardData = [];
+  shuffledPhotos.forEach((photo, idx) => {
+    cardData.push({ photo, id: idx * 2,     matched: false });
+    cardData.push({ photo, id: idx * 2 + 1, matched: false });
+  });
+  cardData = shuffle(cardData);
+
+  // Build grid
+  const board = document.getElementById('game-board');
+  const cols = numPairs <= 4 ? 4 : numPairs <= 8 ? 4 : numPairs <= 14 ? 7 : 8;
+  board.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  board.innerHTML = '';
+  cards = [];
+
+  cardData.forEach((data, index) => {
+    const card = createCardElement(data, index);
+    board.appendChild(card);
+    cards.push(card);
+  });
+
+  // Start timer
+  timerInterval = setInterval(() => {
+    timerSeconds++;
+    updateTimer();
+  }, 1000);
+}
+
+function createCardElement(data, index) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.dataset.index = index;
+
+  const inner = document.createElement('div');
+  inner.className = 'card-inner';
+
+  // Back face
+  const back = document.createElement('div');
+  back.className = 'card-face card-back';
+  back.innerHTML = '<div class="card-back-design">⭐</div>';
+
+  // Front face
+  const front = document.createElement('div');
+  front.className = 'card-face card-front';
+  const img = document.createElement('img');
+  img.src = data.photo.file;
+  img.alt = data.photo.name || 'תמונה משפחתית';
+  img.onerror = function() { this.src = ''; this.parentElement.innerHTML = '<span style="font-size:3rem">👤</span>'; };
+  front.appendChild(img);
+  if (data.photo.name) {
+    const nameEl = document.createElement('div');
+    nameEl.className = 'card-name';
+    nameEl.textContent = data.photo.name;
+    front.appendChild(nameEl);
+  }
+
+  inner.appendChild(back);
+  inner.appendChild(front);
+  card.appendChild(inner);
+
+  card.addEventListener('click', () => handleCardClick(index));
+  return card;
+}
+
+// =============================================
+//  PLAYER LOGIC
+// =============================================
+function handleCardClick(index) {
+  if (isLocked) return;
+  if (cardData[index].matched) return;
+  if (flippedCards.includes(index)) return;
+  if (flippedCards.length >= 2) return;
+
+  // If computer mode and it's computer's turn, ignore
+  if (GAME_MODES[currentMode].computer && currentPlayer === 2) return;
+
+  flipCard(index);
+  flippedCards.push(index);
+
+  // Computer remembers the card
+  if (GAME_MODES[currentMode].computer) {
+    const file = cardData[index].photo.file;
+    if (!computerMemory[file]) computerMemory[file] = [];
+    if (!computerMemory[file].includes(index)) computerMemory[file].push(index);
+  }
+
+  if (flippedCards.length === 2) {
+    isLocked = true;
+    setTimeout(() => checkMatch(), 1000);
+  }
+}
+
+function checkMatch() {
+  const [i1, i2] = flippedCards;
+  const match = cardData[i1].photo.file === cardData[i2].photo.file;
+
+  if (match) {
+    cardData[i1].matched = true;
+    cardData[i2].matched = true;
+    cards[i1].classList.add('matched');
+    cards[i2].classList.add('matched');
+    cards[i1].removeEventListener('click', () => {});
+    cards[i2].removeEventListener('click', () => {});
+
+    if (currentPlayer === 1) {
+      player1Pairs++;
+    } else {
+      player2Pairs++;
+    }
+    updateScores();
+    flippedCards = [];
+    isLocked = false;
+
+    if (!checkWin()) {
+      // If computer found a match, continue its turn
+      if (GAME_MODES[currentMode].computer && currentPlayer === 2) {
+        setTimeout(() => computerTurn(), 500);
+      }
+    }
+  } else {
+    // No match — flip back
+    setTimeout(() => {
+      unflipCard(i1);
+      unflipCard(i2);
+      flippedCards = [];
+      isLocked = false;
+
+      // Switch turns if multiplayer
+      if (GAME_MODES[currentMode].players > 1) {
+        currentPlayer = currentPlayer === 1 ? 2 : 1;
+        updateTurnIndicator();
+        if (GAME_MODES[currentMode].computer && currentPlayer === 2) {
+          setTimeout(() => computerTurn(), 500);
+        }
+      }
+    }, 600);
+  }
+}
+
+function computerTurn() {
+  if (isLocked) return;
+  const level = DIFFICULTY_LEVELS[currentDifficulty];
+  const memoryChance = level.computerMemory;
+
+  // Find known pairs
+  const knownPairs = [];
+  for (let i = 0; i < cardData.length; i++) {
+    if (!cardData[i].matched) {
+      const file = cardData[i].photo.file;
+      if (computerMemory[file]) {
+        computerMemory[file].push(i);
+      } else {
+        computerMemory[file] = [i];
+      }
+      if (computerMemory[file].length === 2) {
+        knownPairs.push(computerMemory[file]);
+      }
+    }
+  }
+
+  let indices = [];
+  if (knownPairs.length > 0 && Math.random() < memoryChance) {
+    // Pick a known pair
+    indices = knownPairs[Math.floor(Math.random() * knownPairs.length)];
+  } else {
+    // Pick random unmatched cards
+    const unmatched = cardData.map((d, i) => d.matched ? -1 : i).filter(i => i !== -1);
+    if (unmatched.length < 2) return;
+    shuffle(unmatched);
+    indices = unmatched.slice(0, 2);
+  }
+
+  // Simulate thinking
+  document.getElementById('turn-indicator').classList.add('thinking');
+  setTimeout(() => {
+    document.getElementById('turn-indicator').classList.remove('thinking');
+    // Computer remembers the cards it flips
+    indices.forEach(idx => {
+      const file = cardData[idx].photo.file;
+      if (!computerMemory[file]) computerMemory[file] = [];
+      if (!computerMemory[file].includes(idx)) computerMemory[file].push(idx);
+    });
+    // Flip first card
+    flipCard(indices[0]);
+    flippedCards.push(indices[0]);
+    setTimeout(() => {
+      // Flip second card
+      flipCard(indices[1]);
+      flippedCards.push(indices[1]);
+      if (flippedCards.length === 2) {
+        isLocked = true;
+        setTimeout(() => checkMatch(), 1000);
+      }
+    }, 800);
+  }, 1500);
+}
+function flipCard(index) {
+  cards[index].classList.add('flipped');
+}
+
+function unflipCard(index) {
+  cards[index].classList.remove('flipped');
+}
+
+function checkWin() {
+  const total = DIFFICULTY_LEVELS[currentDifficulty].pairs;
+  const totalPairs = Math.min(total, PHOTOS.length);
+  const totalMatched = player1Pairs + player2Pairs;
+  if (totalMatched < totalPairs) return false;
+
+  clearInterval(timerInterval);
+
+  const mins = Math.floor(timerSeconds / 60);
+  const secs = timerSeconds % 60;
+
+  let winner = '';
+  if (GAME_MODES[currentMode].players === 1) {
+    winner = 'ניצחת!';
+  } else {
+    if (player1Pairs > player2Pairs) {
+      winner = 'שחקן 1 ניצח!';
+    } else if (player2Pairs > player1Pairs) {
+      winner = GAME_MODES[currentMode].computer ? 'המחשב ניצח!' : 'שחקן 2 ניצח!';
+    } else {
+      winner = 'תיקו!';
+    }
+  }
+
+  document.getElementById('win-icon').textContent = '🏆';
+  document.getElementById('win-title').textContent = winner;
+  document.getElementById('win-details').innerHTML =
+    `⏱ זמן: ${mins}:${String(secs).padStart(2,'0')}<br>
+     שחקן 1: ${player1Pairs} זוגות<br>
+     ${GAME_MODES[currentMode].computer ? 'מחשב' : 'שחקן 2'}: ${player2Pairs} זוגות`;
+  document.getElementById('win-screen').classList.add('show');
+  return true;
+}
+
+function closeWin() {
+  document.getElementById('win-screen').classList.remove('show');
+  startGame();
+}
+
+function updateScores() {
+  document.getElementById('player1-pairs').textContent = player1Pairs;
+  document.getElementById('player2-pairs').textContent = player2Pairs;
+}
+
+function updateTurnIndicator() {
+  const indicator = document.getElementById('turn-indicator');
+  if (GAME_MODES[currentMode].players === 1) {
+    indicator.style.display = 'none';
+  } else {
+    indicator.style.display = 'block';
+    const playerName = currentPlayer === 1 ? 'שחקן 1' : (GAME_MODES[currentMode].computer ? 'מחשב' : 'שחקן 2');
+    indicator.textContent = `תור ${playerName}`;
+    indicator.classList.toggle('computer-turn', GAME_MODES[currentMode].computer && currentPlayer === 2);
+    indicator.classList.toggle('player-turn', currentPlayer === 1);
+  }
+}
+
+function updateTimer() {
+  const mins = Math.floor(timerSeconds / 60);
+  const secs = timerSeconds % 60;
+  document.getElementById('timer').textContent = `${mins}:${String(secs).padStart(2,'0')}`;
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// =============================================
+//  START
+// =============================================
+startGame();
+</script>
+</body>
+</html>
